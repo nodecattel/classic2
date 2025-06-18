@@ -84,10 +84,11 @@ public:
         consensus.nRuleChangeActivationThreshold = 1916; // 95% of 2016
 
         // New difficulty adjustment parameters (Bellcoin v3 style)
-        consensus.nNewPowDiffHeight = 122290; // Activate new algorithm at block 122290
+        consensus.nNewPowDiffHeight = 122291; // Activate new algorithm at block 122290
         consensus.nPowAveragingWindow = 17; // 17 block averaging window
         consensus.nPowMaxAdjustDown = 32; // 32% adjustment down
-        consensus.nPowMaxAdjustUp = 16; // 16% adjustment up
+        //consensus.nPowMaxAdjustUp = 16; // 16% adjustment up
+        consensus.nPowMaxAdjustUp = 13; // 13% adjustment up - less aggressive, Doesn't jump too fast and overshoot target block spacing
         consensus.nPostBlossomPowTargetSpacing = 10 * 60; // Keep 10 minute blocks
         consensus.nMinerConfirmationWindow = 2016; // nPowTargetTimespan / nPowTargetSpacing 
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
@@ -165,7 +166,19 @@ public:
             ( 74000, uint256S("0x0000000000573993a3c9e41ce34471c079dcf5f52a0e824a81e7f953b8661a20"))
             ( 97000, uint256S("0x00000000000125d656e9f28543317f33fb1b66baaf90de44a375ce6c5564fe0c"))
             ( 110000, uint256S("0x0000000000000004c6282de33556f2e8658f5c70c9c845f95f8ff8ebd6005184"))
-            ( 112273, uint256S("0x00000000b729f5512fcb0aabf09531d585b5f261af00e3a871f139346933349a")),
+            ( 112273, uint256S("0x00000000b729f5512fcb0aabf09531d585b5f261af00e3a871f139346933349a"))
+            ( 112333, uint256S("0x00000000b729f5512fcb0aabf09531d585b5f261af00e3a871f139346933349a")) //from here
+            ( 113283, uint256S("0x0000000000000006907ed7a8d9f4294df122f621439adf0c0f2af4edf67e0197"))
+            ( 114533, uint256S("0x00000000000000055eb4407dadd1a3f71b3b1e7160f458a0dcabecdcd81f4c8b"))
+            ( 115633, uint256S("0x000000000000001d746fde2db4056d48864f82e19bfc809ba47c6bde2e96bde9")) 
+            ( 116733, uint256S("0x000000000000000005728bffd764343089cd16cd697aba4d91c630947fd5d7d7")) 
+            ( 117833, uint256S("0x0000000000000002f776602fc33c65b04d61fa5bc9d340774494e6dfd06f4c62")) 
+            ( 118333, uint256S("0x0000000000000004d975aac041edfda4d42bb0040d3982e270d3c67b6c342512")) 
+            ( 119633, uint256S("0x00000000000000126dcedb337fd99200be0171feb06f4a527b7bf95a149b364c")) 
+            ( 120333, uint256S("0x0000000000000004704f2a110bc6b2c5bb3a8a291f777347a5add65cdf639e8c"))
+            ( 121533, uint256S("0x00000000000000006980d3d1e76322acd5d4c1a111d496b829ddc0a2487524d9")) 
+            ( 122277, uint256S("0x0000000000000000365599aa78754c16083fe1344cc4888acbdd8900364a9bf5"))
+            ( 122288, uint256S("0x000000000000000024327dd2200440a902d90f88f9b3c96b9365648d04f7a6c7")),
             0, // * UNIX timestamp of last checkpoint block
             0,   // * total number of transactions between genesis and last checkpoint
                         //   (the tx=... number in the SetBestChain debug.log lines)

@@ -2962,6 +2962,16 @@ static bool ActivateBestChainStep(CValidationState& state, const CChainParams& c
     const CBlockIndex *pindexOldTip = chainActive.Tip();
     const CBlockIndex *pindexFork = chainActive.FindFork(pindexMostWork);
 
+    // Reject deep reorgs: allow maximum 20-block reorgs
+    const int MAX_REORG_DEPTH = 20;
+    if (pindexOldTip && pindexFork) {
+        int reorgDepth = pindexOldTip->nHeight - pindexFork->nHeight;Add commentMore actions
+        if (reorgDepth > MAX_REORG_DEPTH) {
+            LogPrintf("Rejected deep reorg of %d blocks (limit: %d)\n", reorgDepth, MAX_REORG_DEPTH);
+            return false; 
+        }
+    }
+
     // Disconnect active blocks which are no longer in the best chain.
     bool fBlocksDisconnected = false;
     while (chainActive.Tip() && chainActive.Tip() != pindexFork) {

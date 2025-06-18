@@ -12,6 +12,9 @@
 
 unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params& params)
 {
+    //set diff for first block
+    if (pindexLast->nHeight == 122291)
+        return nProofOfWorkMin;
     // Switch between old and new difficulty algorithms based on height
     if (pindexLast && pindexLast->nHeight >= params.nNewPowDiffHeight)
         return GetNextWorkRequiredNew(pindexLast, pblock, params);
@@ -89,6 +92,7 @@ unsigned int CalculateNextWorkRequired(const CBlockIndex* pindexLast, int64_t nF
 unsigned int GetNextWorkRequiredNew(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params& params)
 {
     unsigned int nProofOfWorkLimit = UintToArith256(params.powLimit).GetCompact();
+    unsigned int nProofOfWorkMin = UintToArith256(params.pownewlimit).GetCompact();
 
     // Genesis block
     if (pindexLast == NULL)
@@ -105,14 +109,46 @@ unsigned int GetNextWorkRequiredNew(const CBlockIndex* pindexLast, const CBlockH
     // Validate parameters to prevent division by zero
     if (params.nPowAveragingWindow <= 0 || params.nPostBlossomPowTargetSpacing <= 0)
     {
-        return nProofOfWorkLimit;
+        return nProofOfWorkMin;
     }
 
     // Emergency difficulty rule: if block time is more than 6x target spacing, allow min difficulty
     if (pblock && pblock->GetBlockTime() > pindexLast->GetBlockTime() + params.nPostBlossomPowTargetSpacing * 6)
     {
-        return nProofOfWorkLimit;
-    }
+        return nProofOfWorkMin;
+    }  
+
+    //for this we need to set a break down if 3x - 50% of last block nbits, 6x - 75% if 75% less than proofofworkmin -- use proofofworkmin, 8x use proofofworkmin
+    /*if (pblock) {
+        int64_t time_diff = pblock->GetBlockTime() - pindexLast->GetBlockTime();
+        int64_t spacing = params.nPostBlossomPowTargetSpacing;
+
+        if (time_diff > spacing * 8) {
+            // Delay is 8x or more — return the minimum difficulty allowed
+            return nProofOfWorkMin;
+        } else if (time_diff > spacing * 6) {
+            // Delay is 6x — reduce difficulty to 75% of previous
+            arith_uint256 lastTarget; lastTarget.SetCompact(pindexLast->nBits);
+            lastTarget = lastTarget * 75 / 100;
+            arith_uint256 minTarget; minTarget.SetCompact(nProofOfWorkMin);
+            if (lastTarget > minTarget) {
+                return lastTarget.GetCompact();
+            } else {
+                return nProofOfWorkMin;
+            }
+        } else if (time_diff > spacing * 3) {
+            // Delay is 3x — reduce difficulty to 50% of previous
+            arith_uint256 lastTarget; lastTarget.SetCompact(pindexLast->nBits);
+            lastTarget = lastTarget * 50 / 100;
+            arith_uint256 minTarget; minTarget.SetCompact(nProofOfWorkMin);
+            if (lastTarget > minTarget) {
+                return lastTarget.GetCompact();
+            } else {
+                return nProofOfWorkMin;
+            }
+        }
+    }*/
+
 
     // Find the first block in the averaging window and calculate average target
     const CBlockIndex* pindexFirst = pindexLast;
@@ -127,7 +163,7 @@ unsigned int GetNextWorkRequiredNew(const CBlockIndex* pindexLast, const CBlockH
     // Check we have enough blocks
     if (pindexFirst == NULL)
     {
-        return nProofOfWorkLimit;
+        return nProofOfWorkMin;
     }
 
     // Calculate average target
@@ -144,7 +180,7 @@ unsigned int CalculateNextWorkRequiredNew(arith_uint256 bnAvg, int64_t nFirstBlo
 
     // Validate parameters
     if (averagingWindowTimespan <= 0) {
-        return UintToArith256(params.powLimit).GetCompact();
+        return UintToArith256(params.pownewlimit).GetCompact();
     }
 
     // Calculate actual timespan with dampening
