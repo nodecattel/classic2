@@ -63,6 +63,28 @@ struct Params {
     int64_t DifficultyAdjustmentInterval() const { return nPowTargetTimespan / nPowTargetSpacing; }
     uint256 nMinimumChainWork;
     uint256 pownewlimit;
+
+    /** New difficulty adjustment parameters (Bellcoin v3 style) */
+    int nNewPowDiffHeight;                    // Height at which new difficulty algorithm activates
+    int64_t nPowAveragingWindow;              // Number of blocks to average for difficulty calculation
+    int64_t nPowMaxAdjustDown;                // Maximum percentage adjustment down
+    int64_t nPowMaxAdjustUp;                  // Maximum percentage adjustment up
+    int64_t nPostBlossomPowTargetSpacing;     // Target spacing for new algorithm
+
+    /** Helper functions for new difficulty system */
+    int64_t AveragingWindowTimespan() const {
+        if (nPowAveragingWindow <= 0 || nPostBlossomPowTargetSpacing <= 0) return 1;
+        return nPowAveragingWindow * nPostBlossomPowTargetSpacing;
+    }
+    int64_t MinActualTimespan() const {
+        int64_t timespan = AveragingWindowTimespan();
+        if (nPowMaxAdjustUp >= 100) return timespan / 100; // Prevent negative values
+        return (timespan * (100 - nPowMaxAdjustUp)) / 100;
+    }
+    int64_t MaxActualTimespan() const {
+        int64_t timespan = AveragingWindowTimespan();
+        return (timespan * (100 + nPowMaxAdjustDown)) / 100;
+    }
 };
 } // namespace Consensus
 
