@@ -95,4 +95,119 @@ BOOST_AUTO_TEST_CASE(GetBlockProofEquivalentTime_test)
     }
 }
 
+// Helper function to create a mock block index for new tests
+CBlockIndex* CreateMockBlockIndex(int height, uint32_t nBits, int64_t nTime, CBlockIndex* pprev = nullptr)
+{
+    CBlockIndex* pindex = new CBlockIndex();
+    pindex->nHeight = height;
+    pindex->nBits = nBits;
+    pindex->nTime = nTime;
+    pindex->pprev = pprev;
+    return pindex;
+}
+
+BOOST_AUTO_TEST_CASE(new_difficulty_algorithm_basic)
+{
+    SelectParams(CBaseChainParams::MAIN);
+    Consensus::Params params = Params().GetConsensus();
+
+    // Set up parameters for new algorithm
+    params.nNewPowDiffHeight = 100;
+    params.nPowAveragingWindow = 17;
+    params.nPowMaxAdjustDown = 32;
+    params.nPowMaxAdjustUp = 16;
+    params.nPostBlossomPowTargetSpacing = 60;
+
+    // Create a chain of blocks with consistent timing
+    CBlockIndex* pindexPrev = nullptr;
+    std::vector<CBlockIndex*> blocks;
+
+    uint32_t initialBits = 0x1d00ffff; // Some reasonable difficulty
+    int64_t baseTime = 1000000;
+
+    // Create 20 blocks with perfect timing (60 seconds apart)
+    for (int i = 0; i < 20; i++) {
+        CBlockIndex* pindex = CreateMockBlockIndex(
+            150 + i, // Height > nNewPowDiffHeight
+            initialBits,
+            baseTime + i * 60, // Perfect 60-second spacing
+            pindexPrev
+        );
+        blocks.push_back(pindex);
+        pindexPrev = pindex;
+    }
+
+    // Test that difficulty remains stable with perfect timing
+    CBlockHeader header;
+    header.nTime = baseTime + 20 * 60;
+
+    uint32_t newBits = GetNextWorkRequiredNew(blocks.back(), &header, params);
+
+    // With perfect timing, difficulty should remain approximately the same
+    arith_uint256 oldTarget, newTarget;
+    oldTarget.SetCompact(initialBits);
+    newTarget.SetCompact(newBits);
+
+    // Allow for small variations due to rounding
+    BOOST_CHECK(newTarget <= oldTarget * 105 / 100); // No more than 5% increase
+    BOOST_CHECK(newTarget >= oldTarget * 95 / 100);  // No more than 5% decrease
+
+    // Clean up
+    for (auto* block : blocks) {
+        delete block;
+    }
+}
+
+BOOST_AUTO_TEST_CASE(emergency_difficulty_activation)
+{
+    SelectParams(CBaseChainParams::MAIN);
+    Consensus::Params params = Params().GetConsensus();
+
+    params.nNewPowDiffHeight = 100;
+    params.nPostBlossomPowTargetSpacing = 60;
+
+    // Create a block
+    CBlockIndex* pindex = CreateMockBlockIndex(150, 0x1d00ffff, 1000000);
+
+    // Create a header with timestamp 7 minutes (420 seconds) after last block
+    // This is > 6 * 60 = 360 seconds, so should trigger emergency difficulty
+    CBlockHeader header;
+    header.nTime = 1000000 + 420;
+
+    uint32_t newBits = GetNextWorkRequiredNew(pindex, &header, params);
+    uint32_t maxBits = UintToArith256(params.powLimit).GetCompact();
+
+    // Should return maximum difficulty (minimum work)
+    BOOST_CHECK_EQUAL(newBits, maxBits);
+
+    delete pindex;
+}
+
+BOOST_AUTO_TEST_CASE(permitted_difficulty_transition_new_algo)
+{
+    SelectParams(CBaseChainParams::MAIN);
+    Consensus::Params params = Params().GetConsensus();
+
+    params.nNewPowDiffHeight = 100;
+    params.nPowMaxAdjustDown = 32;
+    params.nPowMaxAdjustUp = 16;
+    params.fPowAllowMinDifficultyBlocks = false;
+
+    uint32_t oldBits = 0x1d00ffff;
+    arith_uint256 oldTarget;
+    oldTarget.SetCompact(oldBits);
+
+    // Test valid adjustment within limits
+    arith_uint256 validTarget = oldTarget * 110 / 100; // 10% increase (within 32% limit)
+    uint32_t validBits = validTarget.GetCompact();
+
+    BOOST_CHECK(PermittedDifficultyTransition(params, 150, oldBits, validBits));
+
+    // Test invalid adjustment beyond limits
+    arith_uint256 invalidTarget = oldTarget * 150 / 100; // 50% increase (beyond 32% limit)
+    uint32_t invalidBits = invalidTarget.GetCompact();
+
+    BOOST_CHECK(!PermittedDifficultyTransition(params, 150, oldBits, invalidBits));
+}
+
 BOOST_AUTO_TEST_SUITE_END()

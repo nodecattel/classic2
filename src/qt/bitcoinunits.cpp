@@ -17,9 +17,9 @@ BitcoinUnits::BitcoinUnits(QObject *parent):
 QList<BitcoinUnits::Unit> BitcoinUnits::availableUnits()
 {
     QList<BitcoinUnits::Unit> unitlist;
-    unitlist.append(BTC);
-    unitlist.append(mBTC);
-    unitlist.append(uBTC);
+    unitlist.append(XBT);
+    unitlist.append(mXBT);
+    unitlist.append(uXBT);
     return unitlist;
 }
 
@@ -27,9 +27,9 @@ bool BitcoinUnits::valid(int unit)
 {
     switch(unit)
     {
-    case BTC:
-    case mBTC:
-    case uBTC:
+    case XBT:
+    case mXBT:
+    case uXBT:
         return true;
     default:
         return false;
@@ -40,9 +40,9 @@ QString BitcoinUnits::name(int unit)
 {
     switch(unit)
     {
-    case BTC: return QString("XBT");
-    case mBTC: return QString("mXBT");
-    case uBTC: return QString::fromUtf8("μXBT");
+    case XBT: return QString("XBT");
+    case mXBT: return QString("mXBT");
+    case uXBT: return QString::fromUtf8("μXBT");
     default: return QString("???");
     }
 }
@@ -51,9 +51,9 @@ QString BitcoinUnits::description(int unit)
 {
     switch(unit)
     {
-    case BTC: return QString("Bitcoins");
-    case mBTC: return QString("Milli-Bitcoins (1 / 1" THIN_SP_UTF8 "000)");
-    case uBTC: return QString("Micro-Bitcoins (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
+    case XBT: return QString("Bitcoins");
+    case mXBT: return QString("Milli-Bitcoins (1 / 1" THIN_SP_UTF8 "000)");
+    case uXBT: return QString("Micro-Bitcoins (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
     default: return QString("???");
     }
 }
@@ -62,9 +62,9 @@ qint64 BitcoinUnits::factor(int unit)
 {
     switch(unit)
     {
-    case BTC:  return 100000000;
-    case mBTC: return 100000;
-    case uBTC: return 100;
+    case XBT:  return 100000000;
+    case mXBT: return 100000;
+    case uXBT: return 100;
     default:   return 100000000;
     }
 }
@@ -73,9 +73,9 @@ int BitcoinUnits::decimals(int unit)
 {
     switch(unit)
     {
-    case BTC: return 8;
-    case mBTC: return 5;
-    case uBTC: return 2;
+    case XBT: return 8;
+    case mXBT: return 5;
+    case uXBT: return 2;
     default: return 0;
     }
 }
