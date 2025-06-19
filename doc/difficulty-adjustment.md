@@ -17,7 +17,7 @@ The original Bitcoin difficulty adjustment algorithm has several vulnerabilities
 1. **Averaging Window**: Uses a 17-block averaging window instead of 2016 blocks, making the system much more responsive to hash rate changes.
 
 2. **Asymmetric Adjustment Limits**: 
-   - Maximum increase: 16% per adjustment
+   - Maximum increase: 13% per adjustment
    - Maximum decrease: 32% per adjustment
    - This asymmetry allows faster recovery when miners leave
 
@@ -30,7 +30,7 @@ The original Bitcoin difficulty adjustment algorithm has several vulnerabilities
 - `nNewPowDiffHeight`: Block height at which the new algorithm activates (122290 for mainnet)
 - `nPowAveragingWindow`: Number of blocks to average (17)
 - `nPowMaxAdjustDown`: Maximum percentage decrease (32%)
-- `nPowMaxAdjustUp`: Maximum percentage increase (16%)
+- `nPowMaxAdjustUp`: Maximum percentage increase (13%)
 - `nPostBlossomPowTargetSpacing`: Target block time in seconds (600 = 10 minutes)
 
 ### Algorithm Details

@@ -3543,6 +3543,12 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& sta
         return true;  // Allow block even if proof of work is incorrect for blocks before 97000
     }
 
+    if (pindexPrev &&
+        (pindexPrev->nHeight >= 122290 && pindexPrev->nHeight < 122298)) {
+        //LogPrintf("Skipping difficulty check for block %d, special exception\n", pindexPrev->nHeight + 1);
+        return true;
+    }
+
     // Check proof of work
     if (pindexPrev->nHeight >= 112400) {
         if (block.nBits != GetNextWorkRequired(pindexPrev, &block, consensusParams))
