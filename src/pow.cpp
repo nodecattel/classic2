@@ -16,7 +16,7 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
     unsigned int nProofOfWorkLimit = UintToArith256(params.powLimit).GetCompact();
     unsigned int nProofOfWorkMin = UintToArith256(params.pownewlimit).GetCompact();
     //set diff for first block
-    if (pindexLast->nHeight == 122291)
+    if (pindexLast->nHeight >= 122291 && pindexLast->nHeight <= 122296)
         return nProofOfWorkMin;
     // Switch between old and new difficulty algorithms based on height
     if (pindexLast && pindexLast->nHeight >= params.nNewPowDiffHeight)
