@@ -12,16 +12,15 @@
 
 unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params& params)
 {
+    // Original algorithm for backward compatibility
+    unsigned int nProofOfWorkLimit = UintToArith256(params.powLimit).GetCompact();
+    unsigned int nProofOfWorkMin = UintToArith256(params.pownewlimit).GetCompact();
     //set diff for first block
     if (pindexLast->nHeight == 122291)
         return nProofOfWorkMin;
     // Switch between old and new difficulty algorithms based on height
     if (pindexLast && pindexLast->nHeight >= params.nNewPowDiffHeight)
         return GetNextWorkRequiredNew(pindexLast, pblock, params);
-
-    // Original algorithm for backward compatibility
-    unsigned int nProofOfWorkLimit = UintToArith256(params.powLimit).GetCompact();
-    unsigned int nProofOfWorkMin = UintToArith256(params.pownewlimit).GetCompact();
 
     // Genesis block
     if (pindexLast == NULL)
