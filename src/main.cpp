@@ -2965,7 +2965,7 @@ static bool ActivateBestChainStep(CValidationState& state, const CChainParams& c
     // Reject deep reorgs: allow maximum 20-block reorgs
     const int MAX_REORG_DEPTH = 20;
     if (pindexOldTip && pindexFork) {
-        int reorgDepth = pindexOldTip->nHeight - pindexFork->nHeight;Add commentMore actions
+        int reorgDepth = pindexOldTip->nHeight - pindexFork->nHeight; 
         if (reorgDepth > MAX_REORG_DEPTH) {
             LogPrintf("Rejected deep reorg of %d blocks (limit: %d)\n", reorgDepth, MAX_REORG_DEPTH);
             return false; 
