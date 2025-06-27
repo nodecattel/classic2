@@ -1,0 +1,125 @@
+# Binary outputs
+*.exe
+src/bitcoin
+src/bitcoind
+src/bitcoin-cli
+src/bitcoin-tx
+src/test/test_bitcoin
+src/qt/test/test_bitcoin-qt
+
+# autoreconf generated files
+Makefile.in
+aclocal.m4
+autom4te.cache/
+build-aux/config.guess
+build-aux/config.sub
+build-aux/depcomp
+build-aux/install-sh
+build-aux/ltmain.sh
+build-aux/m4/libtool.m4
+build-aux/m4/lt~obsolete.m4
+build-aux/m4/ltoptions.m4
+build-aux/m4/ltsugar.m4
+build-aux/m4/ltversion.m4
+build-aux/missing
+build-aux/compile
+build-aux/test-driver
+
+# Build configuration
+config.log
+config.status
+configure
+libtool
+src/config/bitcoin-config.h
+src/config/bitcoin-config.h.in
+src/config/stamp-h1
+share/setup.nsi
+share/qt/Info.plist
+
+# Qt generated files
+src/univalue/gen
+src/qt/*.moc
+src/qt/moc_*.cpp
+src/qt/forms/ui_*.h
+src/qt/test/moc*.cpp
+*.qm
+qrc_*.cpp
+
+# Build artifacts
+.deps
+.dirstamp
+.libs
+*.o
+*.o-*
+*.a
+*.lo
+*.la
+*.pb.cc
+*.pb.h
+*.json.h
+*.raw.h
+
+# Temporary files
+.*.swp
+*.*~*
+*.bak
+*.rej
+*.orig
+*.pyc
+.DS_Store
+
+# Runtime/Test files
+.bitcoin
+Bitcoin-Qt.app
+bitcoin-qt
+Makefile.test
+bitcoin-qt_test
+src/test/buildenv.py
+
+# Coverage and logs
+*.gcno
+*.gcda
+/*.info
+*.log
+*.trs
+test_bitcoin.coverage/
+total.coverage/
+coverage_percent.txt
+
+# Build directories (but allow specific makefiles)
+linux-coverage-build
+linux-build
+win32-build
+/build
+qa/tmp
+cache/
+
+# Depends build artifacts (but keep source configs)
+depends/built/
+depends/work/
+depends/sources/*.tar.gz
+depends/sources/*.tar.bz2
+depends/sources/*.zip
+depends/sources/*.jar
+depends/sources/download-stamps
+depends/x86_64-w64-mingw32/
+
+# Test artifacts
+qa/pull-tester/run-bitcoind-for-test.sh
+qa/pull-tester/tests_config.py
+qa/pull-tester/cache/*
+qa/pull-tester/test.*/*
+share/BitcoindComparisonTool.jar
+
+# Documentation
+/doc/doxygen/
+*.dmg
+
+# Generated files
+libbitcoinconsensus.pc
+contrib/devtools/split-debug.sh
+
+# Keep important makefiles
+!src/leveldb*/Makefile
+!depends/Makefile
+!depends/packages/*.mk
