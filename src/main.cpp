@@ -2361,18 +2361,16 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     LogPrint("bench", "    - Sanity checks: %.2fms [%.2fs]\n", 0.001 * (nTime1 - nTimeStart), nTimeCheck * 0.000001);
 
     //Check against hash surge and fast blocks
-
-    int64_t nMinSpacing = 8 * 60; // 8 minutes = 4800 seconds
+    int64_t nMinSpacing = 8 * 60; // 8 minutes = 480 seconds (not 4800)
     if (nMinSpacing > 0 && pindex && pindex->pprev && block.GetBlockTime() - pindex->pprev->GetBlockTime() < nMinSpacing) {
-    LogPrintf("Rejected fast block at height %d (timeDiff=%d sec, required=%d sec)\n",
-              pindex->nHeight,
-              block.GetBlockTime() - pindex->pprev->GetBlockTime(),
-              nMinSpacing);
-    return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS,
-                         "fast-block",
-                         strprintf("block arrived too quickly after previous (%d sec < %d sec)",
-                                   block.GetBlockTime() - pindex->pprev->GetBlockTime(), nMinSpacing));
-}
+        LogPrintf("Rejected fast block at height %d (timeDiff=%d sec, required=%d sec)\n",
+                pindex->nHeight,
+                block.GetBlockTime() - pindex->pprev->GetBlockTime(),
+                nMinSpacing);
+        return state.DoS(100, false, REJECT_INVALID, "fast-block",
+                        false, strprintf("block arrived too quickly after previous (%d sec < %d sec)",
+                                        block.GetBlockTime() - pindex->pprev->GetBlockTime(), nMinSpacing));
+    }
 
     // Do not allow blocks that contain transactions which 'overwrite' older transactions,
     // unless those are already completely spent.
