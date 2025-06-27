@@ -92,6 +92,7 @@ unsigned int GetNextWorkRequiredNew(const CBlockIndex* pindexLast, const CBlockH
 {
     unsigned int nProofOfWorkLimit = UintToArith256(params.powLimit).GetCompact();
     unsigned int nProofOfWorkMin = UintToArith256(params.pownewlimit).GetCompact();
+    unsigned int nProofOfWorkMax = UintToArith256(params.powmaxlimit).GetCompact();
 
     // Genesis block
     if (pindexLast == NULL)
@@ -112,40 +113,73 @@ unsigned int GetNextWorkRequiredNew(const CBlockIndex* pindexLast, const CBlockH
     }
 
     // Emergency difficulty rule: if block time is more than 6x target spacing, allow min difficulty
-    if (pblock && pblock->GetBlockTime() > pindexLast->GetBlockTime() + params.nPostBlossomPowTargetSpacing * 6)
-    {
-        return nProofOfWorkMin;
-    }  
+    //if (pblock && pblock->GetBlockTime() > pindexLast->GetBlockTime() + params.nPostBlossomPowTargetSpacing * 6)
+    //{
+        //return nProofOfWorkMax;
+    //}  //old emergency 
+    if (pblock) {
+        int64_t time_diff = pblock->GetBlockTime() - pindexLast->GetBlockTime();
+        int64_t spacing = params.nPostBlossomPowTargetSpacing;
+        
+        arith_uint256 lastTarget;
+        lastTarget.SetCompact(pindexLast->nBits);
+        
+        arith_uint256 maxTarget;
+        maxTarget.SetCompact(nProofOfWorkMax);
+        
+        if (time_diff > spacing * 8) {
+            // 8x delay: minimum difficulty
+            return nProofOfWorkMax;
+        } else if (time_diff > spacing * 6) {
+            // 6x delay: 65% easier (35% of current difficulty)
+            lastTarget = lastTarget * 100 / 35;
+        } else if (time_diff > spacing * 3) {
+            // 3x delay: 50% easier (50% of current difficulty)
+            lastTarget = lastTarget * 100 / 50;
+        } else {
+            // Normal case: no emergency adjustment
+            return pindexLast->nBits;
+        }
+        
+        // Cap at minimum difficulty (maximum target)
+        if (lastTarget > maxTarget) {
+            return nProofOfWorkMax;
+        }
+        
+        return lastTarget.GetCompact();
+    }
 
     //for this we need to set a break down if 3x - 50% of last block nbits, 6x - 75% if 75% less than proofofworkmin -- use proofofworkmin, 8x use proofofworkmin
     /*if (pblock) {
         int64_t time_diff = pblock->GetBlockTime() - pindexLast->GetBlockTime();
         int64_t spacing = params.nPostBlossomPowTargetSpacing;
-
+        
+        arith_uint256 lastTarget;
+        lastTarget.SetCompact(pindexLast->nBits);
+        
+        arith_uint256 maxTarget;
+        maxTarget.SetCompact(nProofOfWorkMax);
+        
         if (time_diff > spacing * 8) {
-            // Delay is 8x or more — return the minimum difficulty allowed
-            return nProofOfWorkMin;
+            // 8x delay: minimum difficulty
+            return nProofOfWorkMax;
         } else if (time_diff > spacing * 6) {
-            // Delay is 6x — reduce difficulty to 75% of previous
-            arith_uint256 lastTarget; lastTarget.SetCompact(pindexLast->nBits);
-            lastTarget = lastTarget * 75 / 100;
-            arith_uint256 minTarget; minTarget.SetCompact(nProofOfWorkMin);
-            if (lastTarget > minTarget) {
-                return lastTarget.GetCompact();
-            } else {
-                return nProofOfWorkMin;
-            }
+            // 6x delay: 65% easier (35% of current difficulty)
+            lastTarget = lastTarget * 100 / 35;
         } else if (time_diff > spacing * 3) {
-            // Delay is 3x — reduce difficulty to 50% of previous
-            arith_uint256 lastTarget; lastTarget.SetCompact(pindexLast->nBits);
-            lastTarget = lastTarget * 50 / 100;
-            arith_uint256 minTarget; minTarget.SetCompact(nProofOfWorkMin);
-            if (lastTarget > minTarget) {
-                return lastTarget.GetCompact();
-            } else {
-                return nProofOfWorkMin;
-            }
+            // 3x delay: 50% easier (50% of current difficulty)
+            lastTarget = lastTarget * 100 / 50;
+        } else {
+            // Normal case: no emergency adjustment
+            return pindexLast->nBits;
         }
+        
+        // Cap at minimum difficulty (maximum target)
+        if (lastTarget > maxTarget) {
+            return nProofOfWorkMax;
+        }
+        
+        return lastTarget.GetCompact();
     }*/
 
 
