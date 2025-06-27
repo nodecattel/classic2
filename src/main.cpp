@@ -2360,6 +2360,18 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     int64_t nTime1 = GetTimeMicros(); nTimeCheck += nTime1 - nTimeStart;
     LogPrint("bench", "    - Sanity checks: %.2fms [%.2fs]\n", 0.001 * (nTime1 - nTimeStart), nTimeCheck * 0.000001);
 
+    //Check against hash surge and fast blocks
+    int64_t nMinSpacing = 8 * 60; // 8 minutes = 480 seconds (not 4800)
+    if (nMinSpacing > 0 && pindex && pindex->pprev && block.GetBlockTime() - pindex->pprev->GetBlockTime() < nMinSpacing) {
+        LogPrintf("Rejected fast block at height %d (timeDiff=%d sec, required=%d sec)\n",
+                pindex->nHeight,
+                block.GetBlockTime() - pindex->pprev->GetBlockTime(),
+                nMinSpacing);
+        return state.DoS(100, false, REJECT_INVALID, "fast-block",
+                        false, strprintf("block arrived too quickly after previous (%d sec < %d sec)",
+                                        block.GetBlockTime() - pindex->pprev->GetBlockTime(), nMinSpacing));
+    }
+
     // Do not allow blocks that contain transactions which 'overwrite' older transactions,
     // unless those are already completely spent.
     // If such overwrites are allowed, coinbases and transactions depending upon those
@@ -2744,11 +2756,11 @@ void static UpdateTip(CBlockIndex *pindexNew, const CChainParams& chainParams) {
         if (nUpgraded > 100/2)
         {
             // strMiscWarning is read by GetWarnings(), called by Qt and the JSON-RPC code to warn the user:
-            strMiscWarning = _("Warning: Unknown block versions being mined! It's possible unknown rules are in effect");
-            if (!fWarned) {
-                AlertNotify(strMiscWarning);
-                fWarned = true;
-            }
+            //strMiscWarning = _("Warning: Unknown block versions being mined! It's possible unknown rules are in effect");
+            //if (!fWarned) {
+                //AlertNotify(strMiscWarning);
+                //fWarned = true;
+            //}
         }
     }
     LogPrintf("%s: new best=%s height=%d version=0x%08x log2_work=%.8g tx=%lu date='%s' progress=%f cache=%.1fMiB(%utx)", __func__,
