@@ -2362,7 +2362,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
 
     //Check against hash surge and fast blocks
 
-    int64_t nMinSpacing = 6 * 60; // 6 minutes = 360 seconds
+    int64_t nMinSpacing = 8 * 60; // 8 minutes = 4800 seconds
     if (nMinSpacing > 0 && pindex && pindex->pprev && block.GetBlockTime() - pindex->pprev->GetBlockTime() < nMinSpacing) {
     LogPrintf("Rejected fast block at height %d (timeDiff=%d sec, required=%d sec)\n",
               pindex->nHeight,
