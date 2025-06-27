@@ -2368,8 +2368,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
               pindex->nHeight,
               block.GetBlockTime() - pindex->pprev->GetBlockTime(),
               nMinSpacing);
-    return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS,
-                         "fast-block",
+    return state.Invalid(false, 0, "fast-block",
                          strprintf("block arrived too quickly after previous (%d sec < %d sec)",
                                    block.GetBlockTime() - pindex->pprev->GetBlockTime(), nMinSpacing));
 }

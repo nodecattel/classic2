@@ -5,10 +5,10 @@ define(_CLIENT_VERSION_MINOR, 13)
 define(_CLIENT_VERSION_REVISION, 3)
 define(_CLIENT_VERSION_BUILD, 0)
 define(_CLIENT_VERSION_IS_RELEASE, true)
-define(_COPYRIGHT_YEAR, 2016)
+define(_COPYRIGHT_YEAR, 2025)
 define(_COPYRIGHT_HOLDERS,[The %s developers])
-define(_COPYRIGHT_HOLDERS_SUBSTITUTION,[[Bitcoin Core]])
-AC_INIT([Bitcoin Core],[_CLIENT_VERSION_MAJOR._CLIENT_VERSION_MINOR._CLIENT_VERSION_REVISION],[https://github.com/bitcoin/bitcoin/issues],[bitcoin],[https://bitcoincore.org/])
+define(_COPYRIGHT_HOLDERS_SUBSTITUTION,[[Bitcoin Classic]])
+AC_INIT([Bitcoin Classic],[_CLIENT_VERSION_MAJOR._CLIENT_VERSION_MINOR._CLIENT_VERSION_REVISION],[https://github.com/Bitcoinclassicxbt/classic2/issues],[bitcoin-classic],[https://www.classicxbt.com/])
 AC_CONFIG_SRCDIR([src/main.cpp])
 AC_CONFIG_HEADERS([src/config/bitcoin-config.h])
 AC_CONFIG_AUX_DIR([build-aux])
@@ -287,10 +287,11 @@ case $host in
        AC_MSG_ERROR("windres not found")
      fi
 
-     CPPFLAGS="$CPPFLAGS -D_MT -DWIN32 -D_WINDOWS -DBOOST_THREAD_USE_LIB"
+     CPPFLAGS="$CPPFLAGS -D_MT -DWIN32 -D_WINDOWS -DBOOST_THREAD_USE_LIB -DNOMINMAX -DWIN32_LEAN_AND_MEAN -DBOOST_INTERPROCESS_FORCE_GENERIC_EMULATION -DBOOST_INTERPROCESS_DISABLE_WBEM -DBOOST_INTERPROCESS_POSIX_PROCESS_SHARED"
+     LDFLAGS="$LDFLAGS -static-libgcc -static-libstdc++"
      LEVELDB_TARGET_FLAGS="-DOS_WINDOWS"
      if test "x$CXXFLAGS_overridden" = "xno"; then
-       CXXFLAGS="$CXXFLAGS -w"
+       CXXFLAGS="$CXXFLAGS -w -std=c++11 -Wno-deprecated-declarations"
      fi
      case $host in
        i?86-*) WINDOWS_BITS=32 ;;
