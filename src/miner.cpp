@@ -152,7 +152,7 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
 
     // Voluntary minimum block spacing for responsible mining (non-consensus)
     //int64_t nMinSpacing = GetArg("-minblockspacing", 480); // Default 8 minutes
-    int64_t nMinSpacing = std::max(GetArg("-minblockspacing", 480), 480); // Enforce 8 min minimum
+    int64_t nMinSpacing = std::max(GetArg("-minblockspacing", 480), static_cast<int64_t>(480)); // Enforce 8 min minimum
     if (nMinSpacing > 0) {  // Removed opt-out check
         int64_t nMinTime = pindexPrev->GetBlockTime() + nMinSpacing;
         if (pblock->nTime < nMinTime) {
