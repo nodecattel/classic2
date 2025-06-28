@@ -71,6 +71,9 @@ struct Params {
     int64_t nPowMaxAdjustUp;                  // Maximum percentage adjustment up
     int64_t nPostBlossomPowTargetSpacing;     // Target spacing for new algorithm
 
+    /** Minimum block spacing enforcement start height */
+    int nMinBlockSpacingStartHeight;
+
     /** Helper functions for new difficulty system */
     int64_t AveragingWindowTimespan() const {
         if (nPowAveragingWindow <= 0 || nPostBlossomPowTargetSpacing <= 0) return 1;
