@@ -2360,18 +2360,22 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     int64_t nTime1 = GetTimeMicros(); nTimeCheck += nTime1 - nTimeStart;
     LogPrint("bench", "    - Sanity checks: %.2fms [%.2fs]\n", 0.001 * (nTime1 - nTimeStart), nTimeCheck * 0.000001);
 
-    //Check against hash surge and fast blocks
+    // Check against hash surge and fast blocks (enforce after certain height)
+    int64_t nMinSpacing = 480; // 8 minutes - matches miner.cpp
 
-    int64_t nMinSpacing = 8 * 60; // 8 minutes = 4800 seconds
-    if (nMinSpacing > 0 && pindex && pindex->pprev && block.GetBlockTime() - pindex->pprev->GetBlockTime() < nMinSpacing) {
-    LogPrintf("Rejected fast block at height %d (timeDiff=%d sec, required=%d sec)\n",
-              pindex->nHeight,
-              block.GetBlockTime() - pindex->pprev->GetBlockTime(),
-              nMinSpacing);
-    return state.Invalid(false, 0, "fast-block",
-                         strprintf("block arrived too quickly after previous (%d sec < %d sec)",
-                                   block.GetBlockTime() - pindex->pprev->GetBlockTime(), nMinSpacing));
-}
+    if (nMinSpacing > 0 && pindex && pindex->pprev && 
+        pindex->nHeight >= chainparams.GetConsensus().nMinBlockSpacingStartHeight &&
+        block.GetBlockTime() - pindex->pprev->GetBlockTime() < nMinSpacing) {
+        
+        LogPrintf("Rejected fast block at height %d (timeDiff=%d sec, required=%d sec)\n",
+                pindex->nHeight,
+                block.GetBlockTime() - pindex->pprev->GetBlockTime(),
+                nMinSpacing);
+        
+        return state.DoS(100, false, REJECT_INVALID, "fast-block",
+                        false, strprintf("block arrived too quickly after previous (%d sec < %d sec)",
+                                        block.GetBlockTime() - pindex->pprev->GetBlockTime(), nMinSpacing));
+    }
 
     // Do not allow blocks that contain transactions which 'overwrite' older transactions,
     // unless those are already completely spent.
@@ -3567,6 +3571,10 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& sta
         if (block.nBits != GetNextWorkRequired(pindexPrev, &block, consensusParams))
             return state.DoS(100, false, REJECT_INVALID, "bad-diffbits", false, "incorrect proof of work");
     }
+
+    // Check timestamp against prev
+    if (block.GetBlockTime() <= pindexPrev->GetMedianTimePast())
+        return state.Invalid(false, REJECT_INVALID, "time-too-old", "block's timestamp is too early");
 
     // Check timestamp against prev
     if (block.GetBlockTime() <= pindexPrev->GetMedianTimePast())
