@@ -63,6 +63,7 @@ struct Params {
     int64_t DifficultyAdjustmentInterval() const { return nPowTargetTimespan / nPowTargetSpacing; }
     uint256 nMinimumChainWork;
     uint256 pownewlimit;
+    uint256 powmaxlimit;
 
     /** New difficulty adjustment parameters (Bellcoin v3 style) */
     int nNewPowDiffHeight;                    // Height at which new difficulty algorithm activates
