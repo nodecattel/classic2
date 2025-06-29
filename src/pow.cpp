@@ -113,11 +113,50 @@ unsigned int GetNextWorkRequiredNew(const CBlockIndex* pindexLast, const CBlockH
     }
 
     // Emergency difficulty rule: if block time is more than 6x target spacing, allow min difficulty
-    //if (pblock && pblock->GetBlockTime() > pindexLast->GetBlockTime() + params.nPostBlossomPowTargetSpacing * 6)
-    //{
-        //return nProofOfWorkMax;
-    //}  //old emergency 
+    /*if (pblock && pblock->GetBlockTime() > pindexLast->GetBlockTime() + params.nPostBlossomPowTargetSpacing * 6)
+    {
+        //return nProofOfWorkMin;
+    }  //old emergency 
     if (pblock) {
+        int64_t time_diff = pblock->GetBlockTime() - pindexLast->GetBlockTime();
+        int64_t spacing = params.nPostBlossomPowTargetSpacing;
+        
+        arith_uint256 lastTarget;
+        lastTarget.SetCompact(pindexLast->nBits);
+        
+        arith_uint256 maxTarget;
+        maxTarget.SetCompact(nProofOfWorkMax);
+        
+        if (time_diff > spacing * 8) {
+            // 8x delay: minimum difficulty
+            return nProofOfWorkMax;
+        } else if (time_diff > spacing * 6) {
+            // 6x delay: 65% easier (35% of current difficulty)
+            lastTarget = lastTarget * 100 / 35;
+        } else if (time_diff > spacing * 3) {
+            // 3x delay: 50% easier (50% of current difficulty)
+            lastTarget = lastTarget * 100 / 50;
+        } else {
+            // Normal case: no emergency adjustment
+            return pindexLast->nBits;
+        }
+        
+        // Cap at minimum difficulty (maximum target)
+        if (lastTarget > maxTarget) {
+            return nProofOfWorkMax;
+        }
+        
+        return lastTarget.GetCompact();
+    }*/
+
+    // Old emergency rule (before height 126800)
+    if (pindexLast->nHeight < 126800 && pblock && 
+        pblock->GetBlockTime() > pindexLast->GetBlockTime() + params.nPostBlossomPowTargetSpacing * 6) {
+        return nProofOfWorkMin;
+    }
+
+    // New emergency rule (height 128000 and above)
+    if (pindexLast->nHeight >= 126800 && pblock) {
         int64_t time_diff = pblock->GetBlockTime() - pindexLast->GetBlockTime();
         int64_t spacing = params.nPostBlossomPowTargetSpacing;
         
