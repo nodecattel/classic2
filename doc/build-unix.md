@@ -1,6 +1,6 @@
 UNIX BUILD NOTES
 ====================
-Some notes on how to build Bitcoin Core in Unix.
+Some notes on how to build Bitcoin Classic in Unix.
 
 (for OpenBSD specific instructions, see [build-openbsd.md](build-openbsd.md))
 
@@ -9,13 +9,77 @@ Note
 Always use absolute paths to configure and compile bitcoin and the dependencies,
 for example, when specifying the path of the dependency:
 
-	../dist/configure --enable-cxx --disable-shared --with-pic --prefix=$BDB_PREFIX
+        ../dist/configure --enable-cxx --disable-shared --with-pic --prefix=$BDB_PREFIX
 
 Here BDB_PREFIX must be an absolute path - it is defined using $(pwd) which ensures
 the usage of the absolute path.
 
-To Build
+Recommended Build Environment (DevContainer)
 ---------------------
+
+For reproducible and portable builds, Bitcoin Classic uses a DevContainer environment. This ensures consistent compilation across different systems and produces portable executables.
+
+### Using DevContainer (Recommended)
+
+1. **Prerequisites:**
+   - Visual Studio Code with Remote-Containers extension
+   - Docker installed and running
+
+2. **Setup:**
+   ```bash
+   git clone https://github.com/Bitcoinclassicxbt/classic2.git
+   cd classic2
+   code .  # Open in VS Code
+   # When prompted, click "Reopen in Container"
+   ```
+
+3. **Build in DevContainer:**
+   The devcontainer provides a controlled Ubuntu environment with all dependencies pre-installed, ensuring portable executables.
+
+Quick Start Build Instructions
+---------------------
+
+### For Linux (x86_64) - DevContainer Environment
+
+```bash
+# Open DevContainer in VS Code, then in terminal:
+
+# Build dependencies
+cd depends
+make HOST=x86_64-pc-linux-gnu -j$(nproc)
+
+# Build Bitcoin Classic
+cd ..
+./autogen.sh 
+./configure --prefix=$(pwd)/depends/x86_64-pc-linux-gnu \
+    CXXFLAGS="-Wno-deprecated-declarations -Wno-placement-new -O2" \
+    CFLAGS="-Wno-deprecated-declarations -Wno-placement-new -O2"
+
+make -j$(nproc)
+```
+
+### For Windows (x86_64) Cross-compilation - DevContainer Environment
+
+```bash
+# In DevContainer terminal:
+
+# Build dependencies
+cd depends
+make HOST=x86_64-w64-mingw32 -j$(nproc)
+
+# Build Bitcoin Classic
+cd ..
+./autogen.sh
+./configure --prefix=$(pwd)/depends/x86_64-w64-mingw32
+
+make -j$(nproc)
+```
+
+### For Local Development (Alternative)
+
+If not using DevContainer, you can build locally, but results may vary depending on your system configuration:
+
+### Standard Build (Alternative)
 
 ```bash
 ./autogen.sh
@@ -51,13 +115,66 @@ Optional dependencies:
 
 For the versions used in the release, see [release-process.md](release-process.md) under *Fetch and build inputs*.
 
+Bitcoin Classic Specific Notes
+---------------------
+
+### DevContainer Benefits
+- **Reproducible Builds**: Same environment every time, regardless of host OS
+- **Portable Executables**: Compiled in controlled environment for maximum compatibility
+- **Pre-configured Dependencies**: All build tools and libraries pre-installed
+- **Cross-platform**: Works on Windows, macOS, and Linux hosts
+- **Isolation**: No conflicts with host system packages
+
+### Compiler Warnings Fix
+Bitcoin Classic includes fixes for common compiler warnings when building with newer GCC versions:
+
+- `-Wno-deprecated-declarations`: Suppresses Boost auto_ptr deprecation warnings
+- `-Wno-placement-new`: Fixes placement new warnings in Boost libraries
+- `-O2`: Optimization level for release builds
+
+### DevContainer Configuration
+The `.devcontainer/devcontainer.json` configures:
+- Ubuntu-based container with build essentials
+- Cross-compilation toolchains for Windows
+- All required dependencies pre-installed
+- Optimized for Bitcoin Classic builds
+
+### Windows Cross-compilation Prerequisites
+The DevContainer includes pre-installed Windows cross-compilation tools. For local builds without DevContainer, install:
+
+```bash
+# Ubuntu/Debian
+sudo apt-get install g++-mingw-w64-x86-64 mingw-w64-x86-64-dev
+
+# Fedora
+sudo dnf install mingw64-gcc-c++
+```
+
+### Creating Release Packages
+
+After building, you can create release packages:
+
+```bash
+# From the src directory
+cd src
+
+# Create Bitcoin Classic release packages
+mkdir -p bitcoin-classic-0.13.4-linux-x86_64
+cp bitcoind bitcoin-cli bitcoin-tx qt/bitcoin-qt bitcoin-classic-0.13.4-linux-x86_64/
+tar -czf bitcoin-classic-0.13.4-linux-x86_64.tar.gz bitcoin-classic-0.13.4-linux-x86_64/
+
+# For Windows (if cross-compiled)
+mkdir -p bitcoin-classic-0.13.4-windows-x86_64
+cp bitcoind.exe bitcoin-cli.exe bitcoin-tx.exe qt/bitcoin-qt.exe bitcoin-classic-0.13.4-windows-x86_64/
+zip -r bitcoin-classic-0.13.4-windows-x86_64.zip bitcoin-classic-0.13.4-windows-x86_64/
+```
+
 Memory Requirements
 --------------------
 
 C++ compilers are memory-hungry. It is recommended to have at least 1.5 GB of
-memory available when compiling Bitcoin Core. On systems with less, gcc can be
+memory available when compiling Bitcoin Classic. On systems with less, gcc can be
 tuned to conserve memory with additional CXXFLAGS:
-
 
     ./configure CXXFLAGS="--param ggc-min-expand=1 --param ggc-min-heapsize=32768"
 
@@ -66,6 +183,10 @@ Dependency Build Instructions: Ubuntu & Debian
 Build requirements:
 
     sudo apt-get install build-essential libtool autotools-dev automake pkg-config libssl-dev libevent-dev bsdmainutils
+
+For cross-compilation to Windows:
+
+    sudo apt-get install g++-mingw-w64-x86-64 mingw-w64-x86-64-dev
 
 Options when installing required Boost library files:
 
@@ -92,7 +213,7 @@ BerkeleyDB 5.1 or later, which break binary wallet compatibility with the distri
 are based on BerkeleyDB 4.8. If you do not care about wallet compatibility,
 pass `--with-incompatible-bdb` to configure.
 
-See the section "Disable-wallet mode" to build Bitcoin Core without wallet.
+See the section "Disable-wallet mode" to build Bitcoin Classic without wallet.
 
 Optional:
 
@@ -131,6 +252,10 @@ Build requirements:
 
     sudo dnf install gcc-c++ libtool make autoconf automake openssl-devel libevent-devel boost-devel libdb4-devel libdb4-cxx-devel
 
+For cross-compilation to Windows:
+
+    sudo dnf install mingw64-gcc-c++
+
 Optional:
 
     sudo dnf install miniupnpc-devel
@@ -148,7 +273,6 @@ Notes
 The release is built with GCC and then "strip bitcoind" to strip the debug
 symbols, which reduces the executable size by about 90%.
 
-
 miniupnpc
 ---------
 
@@ -156,10 +280,9 @@ miniupnpc
 http://miniupnp.tuxfamily.org/files/).  UPnP support is compiled in and
 turned off by default.  See the configure options for upnp behavior desired:
 
-	--without-miniupnpc      No UPnP support miniupnp not required
-	--disable-upnp-default   (the default) UPnP support turned off by default at runtime
-	--enable-upnp-default    UPnP support turned on by default at runtime
-
+        --without-miniupnpc      No UPnP support miniupnp not required
+        --disable-upnp-default   (the default) UPnP support turned off by default at runtime
+        --enable-upnp-default    UPnP support turned on by default at runtime
 
 Berkeley DB
 -----------
@@ -184,7 +307,7 @@ cd db-4.8.30.NC/build_unix/
 ../dist/configure --enable-cxx --disable-shared --with-pic --prefix=$BDB_PREFIX
 make install
 
-# Configure Bitcoin Core to use our own-built instance of BDB
+# Configure Bitcoin Classic to use our own-built instance of BDB
 cd $BITCOIN_ROOT
 ./autogen.sh
 ./configure LDFLAGS="-L${BDB_PREFIX}/lib/" CPPFLAGS="-I${BDB_PREFIX}/include/" # (other args...)
@@ -196,22 +319,20 @@ Boost
 -----
 If you need to build Boost yourself:
 
-	sudo su
-	./bootstrap.sh
-	./bjam install
-
+        sudo su
+        ./bootstrap.sh
+        ./bjam install
 
 Security
 --------
-To help make your bitcoin installation more secure by making certain attacks impossible to
+To help make your Bitcoin Classic installation more secure by making certain attacks impossible to
 exploit even if a vulnerability is found, binaries are hardened by default.
 This can be disabled with:
 
 Hardening Flags:
 
-	./configure --enable-hardening
-	./configure --disable-hardening
-
+        ./configure --enable-hardening
+        ./configure --disable-hardening
 
 Hardening enables the following features:
 
@@ -227,7 +348,7 @@ Hardening enables the following features:
 
     To test that you have built PIE executable, install scanelf, part of paxutils, and use:
 
-    	scanelf -e ./bitcoin
+        scanelf -e ./bitcoin
 
     The output should contain:
 
@@ -236,7 +357,7 @@ Hardening enables the following features:
 
 * Non-executable Stack
     If the stack is executable then trivial stack based buffer overflow exploits are possible if
-    vulnerable buffers are found. By default, bitcoin should be built with a non-executable stack
+    vulnerable buffers are found. By default, Bitcoin Classic should be built with a non-executable stack
     but if one of the libraries it uses asks for an executable stack or someone makes a mistake
     and uses a compiler extension which requires an executable stack, it will silently build an
     executable without the non-executable stack protection.
@@ -245,14 +366,14 @@ Hardening enables the following features:
     `scanelf -e ./bitcoin`
 
     the output should contain:
-	STK/REL/PTL
-	RW- R-- RW-
+        STK/REL/PTL
+        RW- R-- RW-
 
     The STK RW- means that the stack is readable and writeable but not executable.
 
 Disable-wallet mode
 --------------------
-When the intention is to run only a P2P node without a wallet, bitcoin may be compiled in
+When the intention is to run only a P2P node without a wallet, Bitcoin Classic may be compiled in
 disable-wallet mode with:
 
     ./configure --disable-wallet
@@ -268,14 +389,13 @@ A list of additional configure flags can be displayed with:
 
     ./configure --help
 
-
 Setup and Build Example: Arch Linux
 -----------------------------------
 This example lists the steps necessary to setup and build a command line only, non-wallet distribution of the latest changes on Arch Linux:
 
     pacman -S git base-devel boost libevent python
-    git clone https://github.com/bitcoin/bitcoin.git
-    cd bitcoin/
+    git clone https://github.com/Bitcoinclassicxbt/classic2.git
+    cd classic2/
     ./autogen.sh
     ./configure --disable-wallet --without-gui --without-miniupnpc
     make check
@@ -286,7 +406,6 @@ or building and depending on a local version of Berkeley DB 4.8. The readily ava
 `--with-incompatible-bdb` according to the [PKGBUILD](https://projects.archlinux.org/svntogit/community.git/tree/bitcoin/trunk/PKGBUILD).
 As mentioned above, when maintaining portability of the wallet between the standard Bitcoin Core distributions and independently built
 node software is desired, Berkeley DB 4.8 must be used.
-
 
 ARM Cross-compilation
 -------------------
@@ -307,5 +426,36 @@ To build executables for ARM:
     ./configure --prefix=$PWD/depends/arm-linux-gnueabihf --enable-glibc-back-compat --enable-reduce-exports LDFLAGS=-static-libstdc++
     make
 
-
 For further documentation on the depends system see [README.md](../depends/README.md) in the depends directory.
+
+Troubleshooting
+---------------
+
+### Troubleshooting
+
+1. **DevContainer Issues**:
+   - Ensure Docker is running and has sufficient resources (4GB+ RAM recommended)
+   - Try rebuilding the container: `Ctrl+Shift+P` → "Remote-Containers: Rebuild Container"
+   - Check Docker permissions on Linux: `sudo usermod -aG docker $USER` (logout/login required)
+
+2. **Build Issues**:
+   - **Boost auto_ptr warnings**: Use the provided CXXFLAGS with `-Wno-deprecated-declarations`
+   - **Placement new warnings**: Use the provided CXXFLAGS with `-Wno-placement-new` 
+   - **Missing fontconfig patch**: The build system will automatically create the required empty patch file
+   - **Memory issues**: Use `-j1` instead of `-j$(nproc)` for single-threaded builds on low-memory systems
+
+3. **DevContainer vs Local Builds**:
+   - DevContainer builds are more reproducible and portable
+   - Local builds may have different results depending on system configuration
+   - For release builds, always use DevContainer environment
+
+### Environment Details
+- **DevContainer Base**: Ubuntu 20.04 LTS
+- **Compiler**: GCC 9.4+
+- **Cross-compiler**: MinGW-w64 for Windows builds
+- **Dependencies**: All pre-installed and version-locked for consistency
+
+### Getting Help
+
+- GitHub Issues: https://github.com/Bitcoinclassicxbt/classic2/issues
+- Website: https://www.classicxbt.com

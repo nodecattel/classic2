@@ -484,7 +484,8 @@ std::string LicenseInfo()
     const std::string URL_SOURCE_CODE = "<https://github.com/Bitcoinclassicxbt/classic2>";
     const std::string URL_WEBSITE = "<https://www.classicxbt.com>";
     // todo: remove urls from translations on next change
-    return CopyrightHolders(strprintf(_("Copyright (C) %i-%i"), 2009, COPYRIGHT_YEAR) + " ") + "\n" +
+    return CopyrightHolders(strprintf(_("Copyright (C) %i"), COPYRIGHT_YEAR) + " ") + "\n" +
+           "Copyright (C) 2009-2015 The Bitcoin Core developers\n" +
            "\n" +
            strprintf(_("Please contribute if you find %s useful. "
                        "Visit %s for further information about the software."),
