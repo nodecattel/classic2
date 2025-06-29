@@ -91,7 +91,7 @@ public:
         consensus.nPowMaxAdjustUp = 13; // 13% adjustment up - less aggressive, Doesn't jump too fast and overshoot target block spacing
         consensus.nPostBlossomPowTargetSpacing = 10 * 60; // Keep 10 minute blocks
         consensus.nMinerConfirmationWindow = 2016; // nPowTargetTimespan / nPowTargetSpacing 
-        consensus.nMinBlockSpacingStartHeight = 126016; //surge control start block
+        consensus.nMinBlockSpacingStartHeight = 126800; //surge control start block
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 1199145601; // January 1, 2008
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 1230767999; // December 31, 2008
