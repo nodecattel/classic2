@@ -160,8 +160,8 @@ unsigned int GetNextWorkRequiredNew(const CBlockIndex* pindexLast, const CBlockH
         int64_t time_diff = pblock->GetBlockTime() - pindexLast->GetBlockTime();
         int64_t spacing = params.nPostBlossomPowTargetSpacing;
 
-        LogPrintf("Emergency rule check: height=%d, time_diff=%d, spacing=%d, 3x=%d, 6x=%d, 8x=%d\n",
-                  pindexLast->nHeight, time_diff, spacing, spacing*3, spacing*6, spacing*8);
+        LogPrintf("Emergency rule check: height=%d, time_diff=%lld, spacing=%lld, 3x=%lld, 6x=%lld, 8x=%lld\n",
+          height, time_diff, spacing, spacing * 3, spacing * 6, spacing * 8);
         
         arith_uint256 lastTarget;
         lastTarget.SetCompact(pindexLast->nBits);
