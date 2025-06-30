@@ -170,7 +170,7 @@ void BlockAssembler::resetBlock()
     }
 
     // Ensure timestamp is also greater than median time past
-    pblock->nTime = std::max(pblock->nTime, nMedianTimePast + 1);
+    pblock->nTime = std::max(static_cast<uint32_t>(pblock->nTime), static_cast<uint32_t>(nMedianTimePast + 1));
 
     // Final check to ensure we don't exceed future time limit after all adjustments
     int64_t nFinalMaxTime = GetAdjustedTime() + 7200;
@@ -314,7 +314,7 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
     }
 
     // Ensure timestamp is also greater than median time past (consensus requirement)
-    pblock->nTime = std::max(pblock->nTime, nMedianTimePast + 1);
+    pblock->nTime = std::max(static_cast<uint32_t>(pblock->nTime), static_cast<uint32_t>(nMedianTimePast + 1));
 
     // Final check to ensure we don't exceed future time limit after all adjustments
     int64_t nFinalMaxTime = GetAdjustedTime() + 7200;
