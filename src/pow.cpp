@@ -155,10 +155,13 @@ unsigned int GetNextWorkRequiredNew(const CBlockIndex* pindexLast, const CBlockH
         return nProofOfWorkMin;
     }
 
-    // New emergency rule (height 128000 and above)
+    // New emergency rule (height 126800 and above)
     if (pindexLast->nHeight >= 126800 && pblock) {
         int64_t time_diff = pblock->GetBlockTime() - pindexLast->GetBlockTime();
         int64_t spacing = params.nPostBlossomPowTargetSpacing;
+
+        LogPrintf("Emergency rule check: height=%d, time_diff=%d, spacing=%d, 3x=%d, 6x=%d, 8x=%d\n",
+                  pindexLast->nHeight, time_diff, spacing, spacing*3, spacing*6, spacing*8);
         
         arith_uint256 lastTarget;
         lastTarget.SetCompact(pindexLast->nBits);
@@ -168,16 +171,16 @@ unsigned int GetNextWorkRequiredNew(const CBlockIndex* pindexLast, const CBlockH
         
         if (time_diff > spacing * 8) {
             // 8x delay: minimum difficulty
+            LogPrintf("Emergency: 8x delay triggered, using minimum difficulty\n");
             return nProofOfWorkMax;
         } else if (time_diff > spacing * 6) {
             // 6x delay: 65% easier (35% of current difficulty)
+            LogPrintf("Emergency: 6x delay triggered, making 65%% easier\n");
             lastTarget = lastTarget * 100 / 35;
         } else if (time_diff > spacing * 3) {
             // 3x delay: 50% easier (50% of current difficulty)
+            LogPrintf("Emergency: 3x delay triggered, making 50%% easier\n");
             lastTarget = lastTarget * 100 / 50;
-        } else {
-            // Normal case: no emergency adjustment
-            return pindexLast->nBits;
         }
         
         // Cap at minimum difficulty (maximum target)
