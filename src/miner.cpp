@@ -122,7 +122,7 @@ void BlockAssembler::resetBlock()
     blockFinished = false;
 }
 
-CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
+/*CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
 {
     resetBlock();
 
@@ -152,15 +152,32 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
 
     // Voluntary minimum block spacing for responsible mining (non-consensus)
     //int64_t nMinSpacing = GetArg("-minblockspacing", 480); // Default 8 minutes
-    int64_t nMinSpacing = std::max(GetArg("-minblockspacing", 480), static_cast<int64_t>(480)); // Enforce 8 min minimum
-    if (nMinSpacing > 0) {  // Removed opt-out check
+    int64_t nMinSpacing = std::max(GetArg("-minblockspacing", 480), static_cast<int64_t>(480));
+    if (nMinSpacing > 0) {
         int64_t nMinTime = pindexPrev->GetBlockTime() + nMinSpacing;
+        int64_t nMaxTime = GetAdjustedTime() + 7200; // MAX_FUTURE_BLOCK_TIME = 7200 seconds
+        
         if (pblock->nTime < nMinTime) {
-            LogPrintf("Mining: Enforcing minimum block spacing (waiting %d seconds)\n",
-                    nMinTime - pblock->nTime);
-            pblock->nTime = nMinTime;
+            if (nMinTime <= nMaxTime) {
+                LogPrintf("Mining: Enforcing minimum block spacing (waiting %d seconds)\n",
+                        nMinTime - pblock->nTime);
+                pblock->nTime = nMinTime;
+            } else {
+                LogPrintf("Mining: Minimum spacing would create invalid future timestamp, using max allowed time\n");
+                pblock->nTime = nMaxTime;
+            }
         }
     }
+
+    // Ensure timestamp is also greater than median time past
+    pblock->nTime = std::max(pblock->nTime, nMedianTimePast + 1);
+
+    // Final check to ensure we don't exceed future time limit after all adjustments
+    int64_t nFinalMaxTime = GetAdjustedTime() + 7200;
+    if (pblock->nTime > nFinalMaxTime) {
+        pblock->nTime = nFinalMaxTime;
+    }
+
 
     nLockTimeCutoff = (STANDARD_LOCKTIME_VERIFY_FLAGS & LOCKTIME_MEDIAN_TIME_PAST)
                        ? nMedianTimePast
@@ -199,6 +216,113 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
     // Fill in header
     pblock->hashPrevBlock  = pindexPrev->GetBlockHash();
     UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev);
+    pblock->nBits          = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus());
+    pblock->nNonce         = 0;
+    pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(pblock->vtx[0]);
+
+    CValidationState state;
+    if (!TestBlockValidity(state, chainparams, *pblock, pindexPrev, false, false)) {
+        throw std::runtime_error(strprintf("%s: TestBlockValidity failed: %s", __func__, FormatStateMessage(state)));
+    }
+
+    return pblocktemplate.release();
+}*/
+
+CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
+{
+    resetBlock();
+
+    pblocktemplate.reset(new CBlockTemplate());
+
+    if(!pblocktemplate.get())
+        return NULL;
+    pblock = &pblocktemplate->block; // pointer for convenience
+
+    // Add dummy coinbase tx as first transaction
+    pblock->vtx.push_back(CTransaction());
+    pblocktemplate->vTxFees.push_back(-1); // updated at end
+    pblocktemplate->vTxSigOpsCost.push_back(-1); // updated at end
+
+    LOCK2(cs_main, mempool.cs);
+    CBlockIndex* pindexPrev = chainActive.Tip();
+    nHeight = pindexPrev->nHeight + 1;
+
+    pblock->nVersion = ComputeBlockVersion(pindexPrev, chainparams.GetConsensus());
+    // -regtest only: allow overriding block.nVersion with
+    // -blockversion=N to test forking scenarios
+    if (chainparams.MineBlocksOnDemand())
+        pblock->nVersion = GetArg("-blockversion", pblock->nVersion);
+
+    pblock->nTime = GetAdjustedTime();
+    const int64_t nMedianTimePast = pindexPrev->GetMedianTimePast();
+
+    nLockTimeCutoff = (STANDARD_LOCKTIME_VERIFY_FLAGS & LOCKTIME_MEDIAN_TIME_PAST)
+                       ? nMedianTimePast
+                       : pblock->GetBlockTime();
+
+    // Decide whether to include witness transactions
+    // This is only needed in case the witness softfork activation is reverted
+    // (which would require a very deep reorganization) or when
+    // -promiscuousmempoolflags is used.
+    // TODO: replace this with a call to main to assess validity of a mempool
+    // transaction (which in most cases can be a no-op).
+    fIncludeWitness = IsWitnessEnabled(pindexPrev, chainparams.GetConsensus());
+
+    addPriorityTxs();
+    addPackageTxs();
+
+    nLastBlockTx = nBlockTx;
+    nLastBlockSize = nBlockSize;
+    nLastBlockWeight = nBlockWeight;
+
+    // Create coinbase transaction.
+    CMutableTransaction coinbaseTx;
+    coinbaseTx.vin.resize(1);
+    coinbaseTx.vin[0].prevout.SetNull();
+    coinbaseTx.vout.resize(1);
+    coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
+    coinbaseTx.vout[0].nValue = nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
+    coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
+    pblock->vtx[0] = coinbaseTx;
+    pblocktemplate->vchCoinbaseCommitment = GenerateCoinbaseCommitment(*pblock, pindexPrev, chainparams.GetConsensus());
+    pblocktemplate->vTxFees[0] = -nFees;
+
+    uint64_t nSerializeSize = GetSerializeSize(*pblock, SER_NETWORK, PROTOCOL_VERSION);
+    LogPrintf("CreateNewBlock(): total size: %u block weight: %u txs: %u fees: %ld sigops %d\n", nSerializeSize, GetBlockWeight(*pblock), nBlockTx, nFees, nBlockSigOpsCost);
+
+    // Fill in header
+    pblock->hashPrevBlock  = pindexPrev->GetBlockHash();
+    UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev);
+    
+    // Apply minimum block spacing AFTER UpdateTime to ensure it's not overridden
+    // Voluntary minimum block spacing for responsible mining (non-consensus)
+    int64_t nMinSpacing = std::max(GetArg("-minblockspacing", 480), static_cast<int64_t>(480)); // Enforce 8 min minimum
+    if (nMinSpacing > 0) {
+        int64_t nMinTime = pindexPrev->GetBlockTime() + nMinSpacing;
+        int64_t nMaxTime = GetAdjustedTime() + 7200; // MAX_FUTURE_BLOCK_TIME = 7200 seconds (2 hours)
+        
+        if (pblock->nTime < nMinTime) {
+            if (nMinTime <= nMaxTime) {
+                LogPrintf("Mining: Enforcing minimum block spacing (waiting %d seconds)\n",
+                        nMinTime - pblock->nTime);
+                pblock->nTime = nMinTime;
+            } else {
+                LogPrintf("Mining: Minimum spacing would create invalid future timestamp, using max allowed time\n");
+                pblock->nTime = nMaxTime;
+            }
+        }
+    }
+
+    // Ensure timestamp is also greater than median time past (consensus requirement)
+    pblock->nTime = std::max(pblock->nTime, nMedianTimePast + 1);
+
+    // Final check to ensure we don't exceed future time limit after all adjustments
+    int64_t nFinalMaxTime = GetAdjustedTime() + 7200;
+    if (pblock->nTime > nFinalMaxTime) {
+        LogPrintf("Mining: Capping block time to avoid future timestamp violation\n");
+        pblock->nTime = nFinalMaxTime;
+    }
+
     pblock->nBits          = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus());
     pblock->nNonce         = 0;
     pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(pblock->vtx[0]);
