@@ -253,19 +253,33 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
     if (chainparams.MineBlocksOnDemand())
         pblock->nVersion = GetArg("-blockversion", pblock->nVersion);
 
-    pblock->nTime = GetAdjustedTime();
+    // Calculate timing constraints upfront
     const int64_t nMedianTimePast = pindexPrev->GetMedianTimePast();
-
+    const int64_t nCurrentTime = GetAdjustedTime();
+    const int64_t nMaxFutureTime = nCurrentTime + 7200; // MAX_FUTURE_BLOCK_TIME
+    
+    // Minimum spacing check
+    int64_t nMinSpacing = std::max(GetArg("-minblockspacing", 480), static_cast<int64_t>(480));
+    int64_t nMinAllowedTime = std::max(
+        nMedianTimePast + 1,  // Consensus requirement
+        pindexPrev->GetBlockTime() + nMinSpacing  // Minimum spacing
+    );
+    
+    // Check if we can create a valid block now
+    if (nMinAllowedTime > nMaxFutureTime) {
+        LogPrintf("CreateNewBlock(): Cannot create valid block template - minimum time %d exceeds max future time %d\n", 
+                  nMinAllowedTime, nMaxFutureTime);
+        return NULL;  // Return NULL instead of invalid template
+    }
+    
+    // Set initial time - will be adjusted by UpdateTime
+    pblock->nTime = nCurrentTime;
+    
     nLockTimeCutoff = (STANDARD_LOCKTIME_VERIFY_FLAGS & LOCKTIME_MEDIAN_TIME_PAST)
                        ? nMedianTimePast
                        : pblock->GetBlockTime();
 
     // Decide whether to include witness transactions
-    // This is only needed in case the witness softfork activation is reverted
-    // (which would require a very deep reorganization) or when
-    // -promiscuousmempoolflags is used.
-    // TODO: replace this with a call to main to assess validity of a mempool
-    // transaction (which in most cases can be a no-op).
     fIncludeWitness = IsWitnessEnabled(pindexPrev, chainparams.GetConsensus());
 
     addPriorityTxs();
@@ -288,43 +302,26 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
     pblocktemplate->vTxFees[0] = -nFees;
 
     uint64_t nSerializeSize = GetSerializeSize(*pblock, SER_NETWORK, PROTOCOL_VERSION);
-    LogPrintf("CreateNewBlock(): total size: %u block weight: %u txs: %u fees: %ld sigops %d\n", nSerializeSize, GetBlockWeight(*pblock), nBlockTx, nFees, nBlockSigOpsCost);
+    LogPrintf("CreateNewBlock(): total size: %u block weight: %u txs: %u fees: %ld sigops %d\n", 
+              nSerializeSize, GetBlockWeight(*pblock), nBlockTx, nFees, nBlockSigOpsCost);
 
     // Fill in header
-    pblock->hashPrevBlock  = pindexPrev->GetBlockHash();
+    pblock->hashPrevBlock = pindexPrev->GetBlockHash();
     UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev);
     
-    // Apply minimum block spacing AFTER UpdateTime to ensure it's not overridden
-    // Voluntary minimum block spacing for responsible mining (non-consensus)
-    int64_t nMinSpacing = std::max(GetArg("-minblockspacing", 480), static_cast<int64_t>(480)); // Enforce 8 min minimum
-    if (nMinSpacing > 0) {
-        int64_t nMinTime = pindexPrev->GetBlockTime() + nMinSpacing;
-        int64_t nMaxTime = GetAdjustedTime() + 7200; // MAX_FUTURE_BLOCK_TIME = 7200 seconds (2 hours)
-        
-        if (pblock->nTime < nMinTime) {
-            if (nMinTime <= nMaxTime) {
-                LogPrintf("Mining: Enforcing minimum block spacing (waiting %d seconds)\n",
-                        nMinTime - pblock->nTime);
-                pblock->nTime = nMinTime;
-            } else {
-                LogPrintf("Mining: Minimum spacing would create invalid future timestamp, using max allowed time\n");
-                pblock->nTime = nMaxTime;
-            }
-        }
+    // Apply final timestamp constraints
+    pblock->nTime = std::max(static_cast<uint32_t>(pblock->nTime), static_cast<uint32_t>(nMinAllowedTime));
+    pblock->nTime = std::min(static_cast<uint32_t>(pblock->nTime), static_cast<uint32_t>(nMaxFutureTime));
+    
+    // Log timing information for debugging
+    int64_t nActualSpacing = pblock->nTime - pindexPrev->GetBlockTime();
+    if (nActualSpacing < nMinSpacing) {
+        LogPrintf("CreateNewBlock(): Warning - block spacing %d seconds is less than minimum %d seconds\n", 
+                  nActualSpacing, nMinSpacing);
     }
-
-    // Ensure timestamp is also greater than median time past (consensus requirement)
-    pblock->nTime = std::max(static_cast<uint32_t>(pblock->nTime), static_cast<uint32_t>(nMedianTimePast + 1));
-
-    // Final check to ensure we don't exceed future time limit after all adjustments
-    int64_t nFinalMaxTime = GetAdjustedTime() + 7200;
-    if (pblock->nTime > nFinalMaxTime) {
-        LogPrintf("Mining: Capping block time to avoid future timestamp violation\n");
-        pblock->nTime = nFinalMaxTime;
-    }
-
-    pblock->nBits          = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus());
-    pblock->nNonce         = 0;
+    
+    pblock->nBits = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus());
+    pblock->nNonce = 0;
     pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(pblock->vtx[0]);
 
     CValidationState state;
