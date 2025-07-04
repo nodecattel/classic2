@@ -156,7 +156,7 @@ unsigned int GetNextWorkRequiredNew(const CBlockIndex* pindexLast, const CBlockH
     }
 
     // New emergency rule (height 126800 and above)
-    if (pindexLast->nHeight >= 127600 && pblock) {
+    if (pindexLast->nHeight >= 127464 && pblock) {
         int64_t time_diff = pblock->GetBlockTime() - pindexLast->GetBlockTime();
         int64_t spacing = params.nPostBlossomPowTargetSpacing;
         
