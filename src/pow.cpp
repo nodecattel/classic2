@@ -9,6 +9,7 @@
 #include "chain.h"
 #include "primitives/block.h"
 #include "uint256.h"
+#include "util.h"
 
 unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params& params)
 {
@@ -159,32 +160,45 @@ unsigned int GetNextWorkRequiredNew(const CBlockIndex* pindexLast, const CBlockH
     if (pindexLast->nHeight >= 127464 && pblock) {
         int64_t time_diff = pblock->GetBlockTime() - pindexLast->GetBlockTime();
         int64_t spacing = params.nPostBlossomPowTargetSpacing;
-        
+
+        // Emergency rule check: height, time_diff, spacing values
+        // LogPrintf("Emergency rule check: height=%d, time_diff=%lld, spacing=%lld, 3x=%lld, 6x=%lld, 8x=%lld\n",
+        //   pindexLast->nHeight, time_diff, spacing, spacing * 3, spacing * 6, spacing * 8);
+
         arith_uint256 lastTarget;
         lastTarget.SetCompact(pindexLast->nBits);
-        
+
         arith_uint256 maxTarget;
         maxTarget.SetCompact(nProofOfWorkMax);
-        
-        if (time_diff > spacing * 8) {
-            // 8x delay: minimum difficulty
-            //LogPrintf("Emergency: 8x delay triggered, using minimum difficulty\n");
+
+        // Emergency difficulty adjustment for blocks >= 127464
+        // Log emergency rule evaluation for monitoring
+        LogPrintf("Emergency rule check: height=%d, time_diff=%lld sec (%.1f min), spacing=%lld sec, multiplier=%.1fx\n",
+                  pindexLast->nHeight, time_diff, time_diff/60.0, spacing, (double)time_diff/spacing);
+
+        if (time_diff > spacing * 4) {
+            // 4x delay (40+ minutes): minimum difficulty (500M)
+            LogPrintf("Emergency: 4x delay detected (%.1f min), using minimum difficulty (500M)\n", time_diff/60.0);
             return nProofOfWorkMax;
         } else if (time_diff > spacing * 6) {
-            // 6x delay: 65% easier (35% of current difficulty)
-            //LogPrintf("Emergency: 6x delay triggered, making 65%% easier\n");
+            // 6x delay (60+ minutes): 65% easier (35% of current difficulty)
+            LogPrintf("Emergency: 6x delay detected (%.1f min), making 65%% easier (35%% of current)\n", time_diff/60.0);
             lastTarget = lastTarget * 100 / 35;
         } else if (time_diff > spacing * 3) {
-            // 3x delay: 50% easier (50% of current difficulty)
-            //LogPrintf("Emergency: 3x delay triggered, making 50%% easier\n");
+            // 3x delay (30+ minutes): 50% easier (50% of current difficulty)
+            LogPrintf("Emergency: 3x delay detected (%.1f min), making 50%% easier (50%% of current)\n", time_diff/60.0);
             lastTarget = lastTarget * 100 / 50;
         }
-        
+
         // Cap at minimum difficulty (maximum target)
         if (lastTarget > maxTarget) {
+            LogPrintf("Emergency: Capping difficulty at minimum (500M) - calculated target exceeded powmaxlimit\n");
             return nProofOfWorkMax;
         }
-        
+
+        // Log final emergency adjustment result
+        LogPrintf("Emergency adjustment complete: new target bits=0x%08x\n", lastTarget.GetCompact());
+
         return lastTarget.GetCompact();
     }
 

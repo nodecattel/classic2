@@ -111,7 +111,8 @@ public:
 
         //new pow limit target hex value
         consensus.pownewlimit = uint256S("0000000000000023CA7500000000000000000000000000000000000000000000");
-        consensus.powmaxlimit = uint256S("0000000000000001d88000000000000000000000000000000000000000000000");
+        // Set powmaxlimit to exactly 500M difficulty for emergency situations
+        consensus.powmaxlimit = uint256S("000000000000000896FD5D0D7736EE28BD0D920EE0C379BCDA666869CBCB9AF3");
         //0000000000000023CA7500000000000000000000000000000000000000000000 120m 1923CA75
         //000000000000003D5B1100000000000000000000000000000000000000000000 70m 193D5B11
         //0000000000000055E5E500000000000000000000000000000000000000000000 diff 50m 1955E5E5
@@ -239,7 +240,8 @@ public:
 
         // Testnet pow limits (use same as main for consistency)
         consensus.pownewlimit = uint256S("0000000000000023CA7500000000000000000000000000000000000000000000");
-        consensus.powmaxlimit = uint256S("0000000000000001d88000000000000000000000000000000000000000000000");
+        // Set powmaxlimit to exactly 500M difficulty for emergency situations
+        consensus.powmaxlimit = uint256S("000000000000000896FD5D0D7736EE28BD0D920EE0C379BCDA666869CBCB9AF3");
 
         pchMessageStart[0] = 0x0b;
         pchMessageStart[1] = 0x11;
@@ -327,7 +329,8 @@ public:
 
         // Regtest pow limits (use same as main for consistency)
         consensus.pownewlimit = uint256S("0000000000000023CA7500000000000000000000000000000000000000000000");
-        consensus.powmaxlimit = uint256S("0000000000000001d88000000000000000000000000000000000000000000000");
+        // Set powmaxlimit to exactly 500M difficulty for emergency situations
+        consensus.powmaxlimit = uint256S("000000000000000896FD5D0D7736EE28BD0D920EE0C379BCDA666869CBCB9AF3");
 
         pchMessageStart[0] = 0xfa;
         pchMessageStart[1] = 0xbf;
