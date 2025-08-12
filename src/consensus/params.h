@@ -64,6 +64,7 @@ struct Params {
     uint256 nMinimumChainWork;
     uint256 pownewlimit;
     uint256 powmaxlimit;
+    uint256 powdinlimit;
 
     /** New difficulty adjustment parameters (Bellcoin v3 style) */
     int nNewPowDiffHeight;                    // Height at which new difficulty algorithm activates

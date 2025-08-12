@@ -93,6 +93,7 @@ unsigned int GetNextWorkRequiredNew(const CBlockIndex* pindexLast, const CBlockH
     unsigned int nProofOfWorkLimit = UintToArith256(params.powLimit).GetCompact();
     unsigned int nProofOfWorkMin = UintToArith256(params.pownewlimit).GetCompact();
     unsigned int nProofOfWorkMax = UintToArith256(params.powmaxlimit).GetCompact();
+    unsigned int nProofOfWorkMid = UintToArith256(params.powdinlimit).GetCompact();
 
     // Genesis block
     if (pindexLast == NULL)
@@ -156,20 +157,52 @@ unsigned int GetNextWorkRequiredNew(const CBlockIndex* pindexLast, const CBlockH
     }
 
     // New emergency rule (height 126800 and above)
-    if (pindexLast->nHeight >= 127464 && pblock) {
+    if (pindexLast->nHeight >= 127464 && pindexLast->nHeight <= 127927 && pblock) {
+    int64_t time_diff = pblock->GetBlockTime() - pindexLast->GetBlockTime();
+    int64_t spacing = params.nPostBlossomPowTargetSpacing;
+    
+    arith_uint256 lastTarget;
+    lastTarget.SetCompact(pindexLast->nBits);
+    
+    arith_uint256 maxTarget;
+    maxTarget.SetCompact(nProofOfWorkMax);
+    
+    if (time_diff > spacing * 8) {
+        // 8x delay: minimum difficulty
+        //LogPrintf("Emergency: 8x delay triggered, using minimum difficulty\n");
+        return nProofOfWorkMax;
+    } else if (time_diff > spacing * 6) {
+        // 6x delay: 65% easier (35% of current difficulty)
+        //LogPrintf("Emergency: 6x delay triggered, making 65%% easier\n");
+        lastTarget = lastTarget * 100 / 35;
+    } else if (time_diff > spacing * 3) {
+        // 3x delay: 50% easier (50% of current difficulty)
+        //LogPrintf("Emergency: 3x delay triggered, making 50%% easier\n");
+        lastTarget = lastTarget * 100 / 50;
+    }
+    
+    // Cap at minimum difficulty (maximum target)
+    if (lastTarget > maxTarget) {
+        return nProofOfWorkMax;
+    }
+    
+    return lastTarget.GetCompact();
+}
+
+if (pindexLast->nHeight >= 127926 && pblock) {
         int64_t time_diff = pblock->GetBlockTime() - pindexLast->GetBlockTime();
         int64_t spacing = params.nPostBlossomPowTargetSpacing;
-        
+
         arith_uint256 lastTarget;
         lastTarget.SetCompact(pindexLast->nBits);
-        
+
         arith_uint256 maxTarget;
-        maxTarget.SetCompact(nProofOfWorkMax);
-        
+        maxTarget.SetCompact(nProofOfWorkMid);
+
         if (time_diff > spacing * 8) {
             // 8x delay: minimum difficulty
             //LogPrintf("Emergency: 8x delay triggered, using minimum difficulty\n");
-            return nProofOfWorkMax;
+            return nProofOfWorkMid;
         } else if (time_diff > spacing * 6) {
             // 6x delay: 65% easier (35% of current difficulty)
             //LogPrintf("Emergency: 6x delay triggered, making 65%% easier\n");
@@ -179,47 +212,14 @@ unsigned int GetNextWorkRequiredNew(const CBlockIndex* pindexLast, const CBlockH
             //LogPrintf("Emergency: 3x delay triggered, making 50%% easier\n");
             lastTarget = lastTarget * 100 / 50;
         }
-        
+
         // Cap at minimum difficulty (maximum target)
         if (lastTarget > maxTarget) {
-            return nProofOfWorkMax;
+            return nProofOfWorkMid;
         }
-        
+
         return lastTarget.GetCompact();
     }
-
-    //for this we need to set a break down if 3x - 50% of last block nbits, 6x - 75% if 75% less than proofofworkmin -- use proofofworkmin, 8x use proofofworkmin
-    /*if (pblock) {
-        int64_t time_diff = pblock->GetBlockTime() - pindexLast->GetBlockTime();
-        int64_t spacing = params.nPostBlossomPowTargetSpacing;
-        
-        arith_uint256 lastTarget;
-        lastTarget.SetCompact(pindexLast->nBits);
-        
-        arith_uint256 maxTarget;
-        maxTarget.SetCompact(nProofOfWorkMax);
-        
-        if (time_diff > spacing * 8) {
-            // 8x delay: minimum difficulty
-            return nProofOfWorkMax;
-        } else if (time_diff > spacing * 6) {
-            // 6x delay: 65% easier (35% of current difficulty)
-            lastTarget = lastTarget * 100 / 35;
-        } else if (time_diff > spacing * 3) {
-            // 3x delay: 50% easier (50% of current difficulty)
-            lastTarget = lastTarget * 100 / 50;
-        } else {
-            // Normal case: no emergency adjustment
-            return pindexLast->nBits;
-        }
-        
-        // Cap at minimum difficulty (maximum target)
-        if (lastTarget > maxTarget) {
-            return nProofOfWorkMax;
-        }
-        
-        return lastTarget.GetCompact();
-    }*/
 
 
     // Find the first block in the averaging window and calculate average target
